@@ -51,9 +51,9 @@ No último dia de estudo de cada semana, inclua um **checkpoint** com:
 3. Monte o **CSV para o Google Agenda** seguindo exatamente as regras descritas no template:
    * Se o plano tiver **até 14 dias de estudo**, inclua todas as sessões.
    * Se tiver **mais de 14**, inclua só os primeiros 14 dias de estudo e avise: "Quer que eu gere o CSV das próximas semanas?".
-4. Use `load_skill_resource` para ler `references/salvar_agenda.md` e salve o CSV com a ferramenta `WriteFile` em `plano-de-estudos.csv`, seguindo o checklist e as regras de caminho desse arquivo.
-   * Se a ferramenta `WriteFile` não estiver disponível, mostre o CSV num bloco ```` ```csv ```` na seção 5 do template.
-5. Na resposta, preencha a seção 5 do template com o **caminho do arquivo salvo** e o número de sessões. Não repita o CSV inteiro na conversa quando o arquivo tiver sido salvo.
+4. Use `load_skill_resource` para ler `references/salvar_agenda.md` e salve o CSV com a ferramenta `create_object` no arquivo `plano-de-estudos.csv` no bucket GCS, seguindo o checklist e as regras desse arquivo.
+   * Se a ferramenta `create_object` não estiver disponível, mostre o CSV num bloco ```` ```csv ```` na seção 5 do template.
+5. Na resposta, preencha a seção 5 do template com a localização do arquivo salvo (`gs://<bucket>/plano-de-estudos.csv`) e o número de sessões. Não repita o CSV inteiro na conversa quando o arquivo tiver sido salvo.
 
 ## Passo 6: Ajustes e Replanejamento
 

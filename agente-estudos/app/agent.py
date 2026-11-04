@@ -18,26 +18,15 @@ import os
 from pathlib import Path
 from typing import Optional
 
+from dotenv import load_dotenv
 from google.adk.agents import Agent
-from google.adk.agents.readonly_context import ReadonlyContext
 from google.adk.apps import App
-from google.adk.environment import LocalEnvironment
+from google.adk.integrations.gcs import GCSToolset
+from google.adk.integrations.gcs.settings import Capabilities, GCSToolSettings
 from google.adk.models import Gemini
 from google.adk.skills import load_skills_from_dir
-from google.adk.tools.base_tool import BaseTool
-from google.adk.tools.environment import EnvironmentToolset
 from google.adk.tools.skill_toolset import SkillToolset
 from google.genai import types
-
-
-class FileOnlyEnvironmentToolset(EnvironmentToolset):
-    """EnvironmentToolset that restricts exposed tools to only ReadFile and WriteFile."""
-
-    async def get_tools(
-        self, readonly_context: Optional[ReadonlyContext] = None
-    ) -> list[BaseTool]:
-        tools = await super().get_tools(readonly_context)
-        return [t for t in tools if t.name in ("ReadFile", "WriteFile")]
 
 
 # Diretórios do projeto
@@ -47,9 +36,20 @@ SKILLS_DIR = APP_DIR / "skills"
 PLANOS_DIR = PROJECT_DIR / "planos"
 PLANOS_DIR.mkdir(parents=True, exist_ok=True)
 
-# Configuração do LocalEnvironment e EnvironmentToolset restrito
-local_env = LocalEnvironment(working_dir=PLANOS_DIR)
-env_toolset = FileOnlyEnvironmentToolset(environment=local_env)
+# Carrega variáveis de ambiente
+load_dotenv(PROJECT_DIR / ".env")
+
+# Configuração do bucket GCS e GCSToolset
+GCS_BUCKET_NAME = os.getenv(
+    "GCS_BUCKET_NAME", "agente-estudos-planos-molten-box-513201-m7"
+)
+gcs_toolset = GCSToolset(
+    tool_filter=["create_object", "get_object_data", "list_objects"],
+    gcs_tool_settings=GCSToolSettings(
+        capabilities=[Capabilities.READ_WRITE],
+        local_file_root=str(PLANOS_DIR),
+    ),
+)
 
 # Carregamento das ADK Skills com SkillToolset
 skills = load_skills_from_dir(SKILLS_DIR)
@@ -61,6 +61,7 @@ TODAY = datetime.date.today().isoformat()
 
 instruction = f"""Você é um mentor de estudos personalizado, atencioso e prático.
 A data de hoje é {TODAY}.
+O bucket do Google Cloud Storage para salvar e carregar os planos de estudo é '{GCS_BUCKET_NAME}'.
 
 Seu objetivo é ajudar o estudante a montar um plano de estudos estruturado, com revisões espaçadas, checkpoints semanais e exportação da agenda para o Google Agenda (CSV).
 Utilize a skill plano-de-estudos para conduzir a conversa, seguindo rigorosamente as regras de validação (gating) e os passos de planejamento."""
@@ -73,7 +74,7 @@ root_agent = Agent(
         retry_options=types.HttpRetryOptions(attempts=3),
     ),
     instruction=instruction,
-    tools=[skill_toolset, env_toolset],
+    tools=[skill_toolset, gcs_toolset],
 )
 
 app = App(
